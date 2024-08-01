@@ -2,6 +2,30 @@
 
 The WhitelistControlledToken contract is an ERC20 token with restricted transfer functionality based on a whitelist oracle. Only addresses listed on the whitelist can transfer or receive tokens. The contract provides functionalities for minting, burning, and managing the whitelist.
 
+## Component Overview
+
+![image](https://github.com/user-attachments/assets/645d72e9-324c-43ab-bb02-3cf9b350c2d4)
+
+## Edge Cases
+
+1. Data Latency
+- Delays in whitelist updates can lead unfacilitated transfers to blacklisted addresses
+- Possible Solution
+  - Validate data freshness by incorporating time-based checks. 
+  - Alerts on downtime of the oracle updates
+  - Logging the update timings to get a hawkeye view of the latency
+
+2. Incorrect Access Control
+- Preventing unauthorized access which could lead to user's access being compromised
+- Possible Solution
+  - Implement granular access controls for different oracle functions and data.
+  - Protect credentials and keys using secure storage methods.
+
+3. Smart Contract Compatibility
+- Ensuring seamless interaction between the oracle interface and the smart contract.
+- Possible Solution
+    - Maintain compatibility through versioning and backward compatibility features.
+
 ## Dependencies
 
 1. OpenZeppelin Contracts: ERC20, Ownable, AccessControl
@@ -60,3 +84,5 @@ npx hardhat run scripts/deploy.js
 
 - `WhitelistControlledToken`: Enables transfers only between whitelisted addresses
 - `WhitelistOracle`: Maintains a whitelist of the token.
+
+
