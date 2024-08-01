@@ -2,6 +2,7 @@ const { ethers } = require("hardhat");
 
 async function deploy() {
   try {
+    // Retrieve signers
     const [
       contractOwner,
       account1,
@@ -11,6 +12,8 @@ async function deploy() {
       account5,
       keeper,
     ] = await ethers.getSigners();
+
+    // Log addresses
     console.log("Contract Owner:", contractOwner.address);
     console.log("Account 1:", account1.address);
     console.log("Account 2:", account2.address);
@@ -18,21 +21,25 @@ async function deploy() {
     console.log("Account 4:", account4.address);
     console.log("Account 5:", account5.address);
     console.log("Keeper:", keeper.address);
+
+    // Define amount
     const amount = ethers.utils.parseUnits("1", "ether");
 
-    // Fetch contracts
-    const [ManagedToken, WhitelistOracle] = await Promise.all([
-      ethers.getContractFactory("ManagedToken"),
-      ethers.getContractFactory("WhitelistOracle"),
-    ]);
+    // Fetch contract factories
+    const WhitelistControlledToken = await ethers.getContractFactory(
+      "WhitelistControlledToken"
+    );
+    const DummyWhitelistOracle = await ethers.getContractFactory(
+      "DummyWhitelistOracle"
+    );
 
-    // Deploy WhitelistOracle
-    const whitelistOracle = await WhitelistOracle.deploy();
+    // Deploy DummyWhitelistOracle
+    const whitelistOracle = await DummyWhitelistOracle.deploy();
     await whitelistOracle.deployed();
-    console.log("WhitelistOracle deployed:", whitelistOracle.address);
+    console.log("DummyWhitelistOracle deployed:", whitelistOracle.address);
 
-    // Deploy ManagedToken
-    const managedToken = await ManagedToken.deploy(
+    // Deploy WhitelistControlledToken
+    const whitelistControlledToken = await WhitelistControlledToken.deploy(
       [
         contractOwner.address,
         account1.address,
@@ -42,33 +49,32 @@ async function deploy() {
       ],
       whitelistOracle.address
     );
-    await managedToken.deployed();
+    await whitelistControlledToken.deployed();
+    console.log(
+      "WhitelistControlledToken deployed:",
+      whitelistControlledToken.address
+    );
 
-    console.log("ManagedToken deployed:", managedToken.address);
+    // Set whitelist status
+    const whitelistStatusPromises = [
+      whitelistOracle.setWhitelistStatus(contractOwner.address, true),
+      whitelistOracle.setWhitelistStatus(account1.address, true),
+      whitelistOracle.setWhitelistStatus(account2.address, true),
+      whitelistOracle.setWhitelistStatus(account3.address, true),
+      whitelistOracle.setWhitelistStatus(account4.address, true),
+    ];
+    await Promise.all(whitelistStatusPromises);
 
-    await (
-      await whitelistOracle.setWhitelistStatus(contractOwner.address, true)
-    ).wait();
-    await (
-      await whitelistOracle.setWhitelistStatus(account1.address, true)
-    ).wait();
-    await (
-      await whitelistOracle.setWhitelistStatus(account2.address, true)
-    ).wait();
-    await (
-      await whitelistOracle.setWhitelistStatus(account3.address, true)
-    ).wait();
-    await (
-      await whitelistOracle.setWhitelistStatus(account4.address, true)
-    ).wait();
+    // Check whitelist status
+    const isAccount2Whitelisted = await whitelistOracle.isWhitelisted(
+      account2.address
+    );
+    console.log("Account 2 whitelisted:", isAccount2Whitelisted);
 
-    const a = await whitelistOracle.isWhitelisted(account2.address);
-    console.log("Account 2 whitelisted:", a);
-
-    // Return deployed contracts
+    // Return deployed contracts and relevant information
     return {
       contractOwner,
-      managedToken,
+      whitelistControlledToken,
       whitelistOracle,
       account1,
       account2,
