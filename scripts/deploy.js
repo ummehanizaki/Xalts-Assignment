@@ -3,15 +3,8 @@ const { ethers } = require("hardhat");
 async function deploy() {
   try {
     // Retrieve signers
-    const [
-      contractOwner,
-      account1,
-      account2,
-      account3,
-      account4,
-      account5,
-      keeper,
-    ] = await ethers.getSigners();
+    const [contractOwner, account1, account2, account3, account4, account5] =
+      await ethers.getSigners();
 
     // Log addresses
     console.log("Contract Owner:", contractOwner.address);
@@ -20,7 +13,6 @@ async function deploy() {
     console.log("Account 3:", account3.address);
     console.log("Account 4:", account4.address);
     console.log("Account 5:", account5.address);
-    console.log("Keeper:", keeper.address);
 
     // Define amount
     const amount = ethers.utils.parseUnits("1", "ether");
@@ -81,7 +73,6 @@ async function deploy() {
       account3,
       account4,
       account5,
-      keeper,
       amount,
     };
   } catch (error) {

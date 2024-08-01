@@ -40,10 +40,10 @@ Key Tests:
 
 - Transfer between whitelisted addresses: Successful transfer between pre-whitelisted accounts.
 - Blacklisted recipient rejection: Transfer rejection when the recipient is not whitelisted.
-- Whitelisting account: Successfully adding an account to the whitelist through the oracle.
+- Whitelisting account: Successfully emitting event & adding an account to the whitelist through the oracle.
 - Receiving after whitelisting: Enabling receiving after whitelisting the account.
 - Sending after whitelisting: Enabling sending after whitelisting the account.
-- Blacklisting account: Successfully removing an account from the whitelist through the oracle.
+- Blacklisting account: Successfully emitting event & removing an account from the whitelist through the oracle.
 - Sending after blacklisting: Transfer rejection when the sender is blacklisted.
 
 Overall, the tests demonstrate that the whitelist mechanism effectively controls token transfers and ensures compliance with the intended access restrictions.

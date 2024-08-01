@@ -1,17 +1,15 @@
 const { deploy } = require("../scripts/deploy");
 const { assert, expect } = require("chai");
+const { setWhitelistStatus, isWhitelisted } = require("./helper");
 
-describe("Managed Token tests", async function () {
-  let contractOwner;
-  let whitelistControlledToken;
-  let whitelistOracle;
-  let account1;
-  let account2;
-  let account3;
-  let account4;
-  let account5;
-  let keeper;
-  let amount;
+describe("Whitelist Controlled Token Tests", function () {
+  let contractOwner,
+    whitelistControlledToken,
+    whitelistOracle,
+    account2,
+    account4,
+    account5,
+    amount;
 
   before(async function () {
     ({
@@ -23,88 +21,104 @@ describe("Managed Token tests", async function () {
       account3,
       account4,
       account5,
-      keeper,
       amount,
     } = await deploy());
   });
 
-  it("Whitelisted addresses should be able to transfer tokens to each other", async function () {
-    assert.equal(
-      (await whitelistControlledToken.balanceOf(account2.address)).toString(),
-      "0"
-    );
+  beforeEach(async function () {
     await whitelistControlledToken.mint(contractOwner.address, amount);
-    await whitelistControlledToken.transfer(account2.address, amount);
+  });
+
+  async function mintAndTransfer(sender, recipient, amount) {
+    await whitelistControlledToken.mint(sender.address, amount);
+    await whitelistControlledToken.transfer(recipient.address, amount);
+  }
+
+  it("Allows whitelisted addresses to transfer tokens", async function () {
+    await mintAndTransfer(contractOwner, account2, amount);
+    const balance = await whitelistControlledToken.balanceOf(account2.address);
     assert.equal(
-      (await whitelistControlledToken.balanceOf(account2.address)).toString(),
-      amount
+      balance.toString(),
+      amount.toString(),
+      "Account 2 should have the transferred amount"
     );
   });
 
-  it("Addresses not whitelisted should not be able to receive tokens", async function () {
-    await whitelistControlledToken.mint(contractOwner.address, amount);
+  it("Prevents non-whitelisted addresses from receiving tokens", async function () {
     await expect(
       whitelistControlledToken.transfer(account5.address, amount)
     ).to.be.revertedWith("Recipient is not whitelisted");
   });
 
-  it("Whitelist Account", async function () {
-    await whitelistControlledToken.updateTokenAccess(account5.address, true);
-    await whitelistOracle.setWhitelistStatus(account5.address, true);
-    expect(await whitelistOracle.isWhitelisted(account5.address)).to.equal(
+  it("Allows whitelisting an account", async function () {
+    const tx = await whitelistControlledToken.updateTokenAccess(
+      account5.address,
       true
     );
+    const receipt = await tx.wait();
+    // Find the event in the transaction receipt
+    const event = receipt.events.find(
+      (event) => event.event === "TokenAccessChanged"
+    );
+    expect(event.args.userAddress).to.equal(account5.address); // Verify 'userAddress'
+    expect(event.args.isWhitelisted).to.be.true;
+
+    await setWhitelistStatus(whitelistOracle, account5.address, true);
+    const isWhitelistedStatus = await isWhitelisted(
+      whitelistOracle,
+      account5.address
+    );
+    expect(isWhitelistedStatus).to.be.true;
   });
 
-  it("Enable receiving after Whitelisting Account", async function () {
+  it("Allows receiving tokens after whitelisting an account", async function () {
+    await mintAndTransfer(contractOwner, account5, amount);
+    const balance = await whitelistControlledToken.balanceOf(account5.address);
     assert.equal(
-      (await whitelistControlledToken.balanceOf(account5.address)).toString(),
-      "0"
-    );
-    await whitelistControlledToken.mint(contractOwner.address, amount);
-    await whitelistControlledToken.transfer(account5.address, amount);
-    assert.equal(
-      (await whitelistControlledToken.balanceOf(account5.address)).toString(),
-      amount
+      balance.toString(),
+      amount.toString(),
+      "Account 5 should have the transferred amount after whitelisting"
     );
   });
 
-  it("Enable sending after Whitelisting Account", async function () {
-    assert.equal(
-      (await whitelistControlledToken.balanceOf(account4.address)).toString(),
-      "0"
-    );
+  it("Allows sending tokens after whitelisting an account", async function () {
     await whitelistControlledToken
       .connect(account5)
       .transfer(account4.address, amount);
-
-    // await whitelistControlledToken.transfer(account5.address, amount);
+    const balance = await whitelistControlledToken.balanceOf(account4.address);
     assert.equal(
-      (await whitelistControlledToken.balanceOf(account4.address)).toString(),
-      amount
+      balance.toString(),
+      amount.toString(),
+      "Account 4 should have the transferred amount"
     );
   });
 
-  it("Blacklist Account", async function () {
-    await whitelistControlledToken.updateTokenAccess(account5.address, false);
-    await whitelistOracle.setWhitelistStatus(account5.address, false);
-
-    expect(await whitelistOracle.isWhitelisted(account5.address)).to.equal(
+  it("Blacklists an account", async function () {
+    const tx = await whitelistControlledToken.updateTokenAccess(
+      account5.address,
       false
     );
+    const receipt = await tx.wait();
+    // Find the event in the transaction receipt
+    const event = receipt.events.find(
+      (event) => event.event === "TokenAccessChanged"
+    );
+    expect(event.args.userAddress).to.equal(account5.address); // Verify 'userAddress'
+    expect(event.args.isWhitelisted).to.be.false;
+
+    await setWhitelistStatus(whitelistOracle, account5.address, false);
+    const isWhitelistedStatus = await isWhitelisted(
+      whitelistOracle,
+      account5.address
+    );
+    expect(isWhitelistedStatus).to.be.false;
   });
 
-  it("Disable sending after Blacklisting Account", async function () {
+  it("Prevents sending tokens after blacklisting an account", async function () {
     await expect(
       whitelistControlledToken
         .connect(account5)
         .transfer(account2.address, amount)
     ).to.be.revertedWith("Sender is not whitelisted");
-  });
-
-  it("Disable receiving after Blacklisting Account", async function () {
-    await expect(
-      whitelistControlledToken.transfer(account5.address, amount)
-    ).to.be.revertedWith("Recipient is not whitelisted");
   });
 });

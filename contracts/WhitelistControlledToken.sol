@@ -55,17 +55,6 @@ contract WhitelistControlledToken is ERC20, Ownable, AccessControl {
     }
 
     /**
-     * @dev Modifier to check if the caller has the whitelister role.
-     */
-    modifier onlyWhitelister() {
-        require(
-            hasRole(WHITELISTER_ROLE, msg.sender),
-            "Caller is not a whitelister"
-        );
-        _;
-    }
-
-    /**
      * @dev Internal function to update the whitelist status of a user.
      * @param userAddress Address of the user.
      * @param isWhitelisted Boolean indicating if the user is to be whitelisted or not.
@@ -91,7 +80,7 @@ contract WhitelistControlledToken is ERC20, Ownable, AccessControl {
     function updateTokenAccess(
         address userAddress,
         bool isWhitelisted
-    ) external onlyWhitelister {
+    ) external onlyRole(WHITELISTER_ROLE) {
         require(userAddress != owner(), "Cannot change owner status");
         _updateTokenAccess(userAddress, isWhitelisted);
     }
